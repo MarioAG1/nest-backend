@@ -1,13 +1,12 @@
 import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { CreateUserDto, LoginDto, UpdateAuthDto, RegisterUserDto } from './dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
 import * as bcryptjs from 'bcryptjs'
-import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './interfaces/jwt-payload';
+import { LoginResponse } from './interfaces/login-response';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +15,7 @@ export class AuthService {
     (
       @InjectModel(User.name)
       private userModel: Model<User>,
-      private jwtService:  JwtService
+      private jwtService: JwtService
     ) { }
 
 
@@ -42,8 +41,18 @@ export class AuthService {
     }
   }
 
+  async register(registerDto: RegisterUserDto): Promise<LoginResponse> {
+
+    const user = await this.create(registerDto)
+
+    return {
+      user: user,
+      token: this.getJwToken({ id: user._id })
+    }
+  }
+
   // Verificar contraseña y email
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<LoginResponse> {
 
     const { email, password } = loginDto
 
@@ -60,7 +69,7 @@ export class AuthService {
     const { password: _, ...rest } = user.toJSON()
 
     return {
-      user: rest, token: this.getJwToken({id:user.id})
+      user: rest, token: this.getJwToken({ id: user.id })
     }
 
   }
